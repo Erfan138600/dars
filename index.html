@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<!--www.erfan-web.ir-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه برنامه‌ریزی تحصیلی</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Vazir', Tahoma, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .subject-color-1 { background-color: #ffcccc; }
+        .subject-color-2 { background-color: #ccffcc; }
+        .subject-color-3 { background-color: #ccccff; }
+        .subject-color-4 { background-color: #ffffcc; }
+        .subject-color-5 { background-color: #ffccff; }
+        .subject-color-6 { background-color: #ccffff; }
+        
+        /* تایمر پومودورو */
+        .timer-circle {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .timer-circle svg {
+            transform: rotate(-90deg);
+        }
+        .timer-circle-bg {
+            fill: none;
+            stroke: #eee;
+            stroke-width: 10;
+        }
+        .timer-circle-progress {
+            fill: none;
+            stroke: #4CAF50;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        /* چاپ و PDF */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        /* اسکرول عمودی برای بخش‌های خاص */
+        .scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* رنگ‌های وضعیت تسک */
+        .task-pending { background-color: #ffe0b2; }
+        .task-in-progress { background-color: #bbdefb; }
+        .task-completed { background-color: #c8e6c9; text-decoration: line-through; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-blue-800 mb-2">سامانه برنامه‌ریزی تحصیلی</h1>
+            <p class="text-lg text-gray-600">ابزاری برای مدیریت زمان، دروس و مطالعه</p>
+        </header>
+
+        <!-- منوی اصلی -->
+        <div class="mb-8 no-print">
+            <div class="flex flex-wrap justify-center border-b">
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="dashboard">داشبورد</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="schedule">برنامه هفتگی</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="tasks">تکالیف و کارها</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="notes">یادداشت‌ها</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="exams">تقویم امتحانات</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="gpa">محاسبه معدل</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="pomodoro">تایمر مطالعه</button>
+                <button class="tab-btn px-6 py-3 bg-white hover:bg-blue-50 focus:outline-none border-b-2 border-transparent" data-tab="progress">پیشرفت</button>
+            </div>
+        </div>
+
+        <!-- بخش داشبورد -->
+        <div id="dashboard" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-blue-700 mb-4">خلاصه وضعیت</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span>کلاس‌های امروز:</span>
+                            <span id="today-classes" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>تکالیف باقی‌مانده:</span>
+                            <span id="pending-tasks" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>امتحان‌های پیش‌رو:</span>
+                            <span id="upcoming-exams" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>پیشرفت ترم:</span>
+                            <div class="w-24 bg-gray-200 rounded-full h-2.5">
+                                <div id="term-progress" class="bg-blue-600 h-2.5 rounded-full" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-blue-700 mb-4">برنامه امروز</h2>
+                    <div id="today-schedule" class="space-y-2">
+                        <!-- برنامه امروز اینجا نمایش داده می‌شود -->
+                        <p class="text-gray-500 text-center">هنوز برنامه‌ای برای امروز ثبت نکرده‌اید.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-blue-700 mb-4">تکالیف فوری</h2>
+                    <div id="urgent-tasks" class="space-y-2">
+                        <!-- تکالیف فوری اینجا نمایش داده می‌شود -->
+                        <p class="text-gray-500 text-center">تکلیف فوری‌ای ندارید.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش برنامه هفتگی -->
+        <div id="schedule" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">برنامه هفتگی</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">نام درس</label>
+                            <input type="text" id="subject-name" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">رنگ</label>
+                            <select id="subject-color" class="w-full p-2 border rounded-md">
+                                <option value="subject-color-1">قرمز</option>
+                                <option value="subject-color-2">سبز</option>
+                                <option value="subject-color-3">آبی</option>
+                                <option value="subject-color-4">زرد</option>
+                                <option value="subject-color-5">صورتی</option>
+                                <option value="subject-color-6">فیروزه‌ای</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">استاد</label>
+                            <input type="text" id="subject-professor" class="w-full p-2 border rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">روز</label>
+                            <select id="subject-day" class="w-full p-2 border rounded-md">
+                                <option value="0">شنبه</option>
+                                <option value="1">یکشنبه</option>
+                                <option value="2">دوشنبه</option>
+                                <option value="3">سه‌شنبه</option>
+                                <option value="4">چهارشنبه</option>
+                                <option value="5">پنجشنبه</option>
+                                <option value="6">جمعه</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">زمان شروع</label>
+                            <input type="time" id="subject-start-time" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">زمان پایان</label>
+                            <input type="time" id="subject-end-time" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="add-subject" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">افزودن به برنامه</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border p-2 bg-gray-100">ساعت/روز</th>
+                                <th class="border p-2 bg-gray-100">شنبه</th>
+                                <th class="border p-2 bg-gray-100">یکشنبه</th>
+                                <th class="border p-2 bg-gray-100">دوشنبه</th>
+                                <th class="border p-2 bg-gray-100">سه‌شنبه</th>
+                                <th class="border p-2 bg-gray-100">چهارشنبه</th>
+                                <th class="border p-2 bg-gray-100">پنجشنبه</th>
+                                <th class="border p-2 bg-gray-100">جمعه</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-table">
+                            <!-- ساعات برنامه اینجا اضافه می‌شود -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش تکالیف و کارها -->
+        <div id="tasks" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">تکالیف و کارها</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">عنوان تکلیف</label>
+                            <input type="text" id="task-title" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">درس مرتبط</label>
+                            <input type="text" id="task-subject" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">مهلت انجام</label>
+                            <input type="date" id="task-due-date" class="w-full p-2 border rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">اولویت</label>
+                            <select id="task-priority" class="w-full p-2 border rounded-md">
+                                <option value="high">زیاد</option>
+                                <option value="medium" selected>متوسط</option>
+                                <option value="low">کم</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">توضیحات</label>
+                            <input type="text" id="task-description" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="add-task" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">افزودن تکلیف</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex mb-4 no-print">
+                    <button id="filter-all" class="px-4 py-2 bg-blue-600 text-white rounded-md mr-2">همه</button>
+                    <button id="filter-pending" class="px-4 py-2 bg-gray-200 rounded-md mr-2">در انتظار</button>
+                    <button id="filter-progress" class="px-4 py-2 bg-gray-200 rounded-md mr-2">در حال انجام</button>
+                    <button id="filter-completed" class="px-4 py-2 bg-gray-200 rounded-md">تکمیل شده</button>
+                </div>
+
+                <div id="task-list" class="space-y-3">
+                    <!-- لیست تکالیف اینجا نمایش داده می‌شود -->
+                    <p class="text-gray-500 text-center">هنوز تکلیفی اضافه نکرده‌اید.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش یادداشت‌ها -->
+        <div id="notes" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">یادداشت‌ها</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">عنوان یادداشت</label>
+                            <input type="text" id="note-title" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">موضوع</label>
+                            <input type="text" id="note-subject" class="w-full p-2 border rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">متن یادداشت</label>
+                        <textarea id="note-content" rows="5" class="w-full p-2 border rounded-md"></textarea>
+                    </div>
+
+                    <div class="mt-4 flex justify-end">
+                        <button id="add-note" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">ذخیره یادداشت</button>
+                    </div>
+                </div>
+
+                <div id="notes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- یادداشت‌ها اینجا نمایش داده می‌شوند -->
+                    <p class="text-gray-500 text-center col-span-3">هنوز یادداشتی ثبت نکرده‌اید.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش تقویم امتحانات -->
+        <div id="exams" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">تقویم امتحانات</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">نام درس</label>
+                            <input type="text" id="exam-subject" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">تاریخ امتحان</label>
+                            <input type="date" id="exam-date" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">زمان امتحان</label>
+                            <input type="time" id="exam-time" class="w-full p-2 border rounded-md">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">محل برگزاری</label>
+                            <input type="text" id="exam-location" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">توضیحات</label>
+                            <input type="text" id="exam-notes" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="add-exam" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">افزودن امتحان</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border p-3 bg-gray-100">نام درس</th>
+                                <th class="border p-3 bg-gray-100">تاریخ</th>
+                                <th class="border p-3 bg-gray-100">زمان</th>
+                                <th class="border p-3 bg-gray-100">محل برگزاری</th>
+                                <th class="border p-3 bg-gray-100">روزهای باقیمانده</th>
+                                <th class="border p-3 bg-gray-100 no-print">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exam-list">
+                            <!-- لیست امتحانات اینجا نمایش داده می‌شود -->
+                            <tr>
+                                <td colspan="6" class="border p-3 text-center text-gray-500">هنوز امتحانی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش محاسبه معدل -->
+        <div id="gpa" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">محاسبه معدل</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">نام درس</label>
+                            <input type="text" id="grade-subject" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">تعداد واحد</label>
+                            <input type="number" id="grade-unit" min="1" max="6" value="3" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">نمره</label>
+                            <input type="number" id="grade-score" min="0" max="20" step="0.25" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="add-grade" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">افزودن درس</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse mb-4">
+                        <thead>
+                            <tr>
+                                <th class="border p-3 bg-gray-100">نام درس</th>
+                                <th class="border p-3 bg-gray-100">تعداد واحد</th>
+                                <th class="border p-3 bg-gray-100">نمره</th>
+                                <th class="border p-3 bg-gray-100 no-print">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grade-list">
+                            <!-- لیست نمرات اینجا نمایش داده می‌شود -->
+                            <tr>
+                                <td colspan="4" class="border p-3 text-center text-gray-500">هنوز درسی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="bg-blue-50 p-4 rounded-md">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">مجموع واحدها</div>
+                            <div id="total-units" class="text-xl font-bold">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">میانگین نمرات</div>
+                            <div id="average-grade" class="text-xl font-bold">0.00</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">معدل</div>
+                            <div id="final-gpa" class="text-xl font-bold">0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش تایمر مطالعه -->
+        <div id="pomodoro" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">تایمر مطالعه</h2>
+                
+                <div class="max-w-md mx-auto">
+                    <div class="timer-circle mb-6">
+                        <svg width="200" height="200">
+                            <circle class="timer-circle-bg" cx="100" cy="100" r="90"></circle>
+                            <circle class="timer-circle-progress" cx="100" cy="100" r="90" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
+                        </svg>
+                        <div class="timer-text">25:00</div>
+                    </div>
+                    
+                    <div class="flex justify-center space-x-4 mb-8 rtl:space-x-reverse">
+                        <button id="pomodoro-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">پومودورو</button>
+                        <button id="short-break-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">استراحت کوتاه</button>
+                        <button id="long-break-btn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">استراحت بلند</button>
+                    </div>
+                    
+                    <div class="flex justify-center space-x-4 rtl:space-x-reverse">
+                        <button id="start-timer" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">شروع</button>
+                        <button id="pause-timer" class="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700" disabled>توقف</button>
+                        <button id="reset-timer" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">بازنشانی</button>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold mb-3">تنظیمات</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-700">زمان پومودورو (دقیقه)</label>
+                                <input type="number" id="pomodoro-time" min="1" max="60" value="25" class="w-full p-2 border rounded-md">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-700">استراحت کوتاه (دقیقه)</label>
+                                <input type="number" id="short-break-time" min="1" max="15" value="5" class="w-full p-2 border rounded-md">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-700">استراحت بلند (دقیقه)</label>
+                                <input type="number" id="long-break-time" min="1" max="30" value="15" class="w-full p-2 border rounded-md">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button id="save-settings" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">ذخیره تنظیمات</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold mb-3">آمار مطالعه امروز</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">پومودوروهای کامل</div>
+                                <div id="completed-pomodoros" class="text-xl font-bold">0</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">زمان مطالعه (دقیقه)</div>
+                                <div id="study-time" class="text-xl font-bold">0</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">زمان استراحت (دقیقه)</div>
+                                <div id="break-time" class="text-xl font-bold">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش پیشرفت -->
+        <div id="progress" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-blue-700 mb-6">پیگیری پیشرفت</h2>
+                
+                <div class="mb-6 no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">نام درس</label>
+                            <input type="text" id="progress-subject" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-700">درصد پیشرفت</label>
+                            <input type="range" id="progress-percentage" min="0" max="100" value="50" class="w-full">
+                            <div class="text-center" id="progress-value">50%</div>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="add-progress" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">ثبت پیشرفت</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="progress-container" class="space-y-6">
+                    <!-- نمودارهای پیشرفت اینجا نمایش داده می‌شوند -->
+                    <p class="text-gray-500 text-center">هنوز پیشرفتی ثبت نشده است.</p>
+                </div>
+                
+                <div class="mt-8 bg-blue-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">پیشرفت کلی ترم</h3>
+                    <div class="relative pt-1">
+                        <div class="flex mb-2 items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                    پیشرفت ترم
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <span id="total-progress-value" class="text-xs font-semibold inline-block text-blue-600">
+                                    0%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                            <div id="total-progress-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<p> عرفان علیخانی - برنامه نویس وب </p>
+    </div>
+
+    <script>
+        // متغیرهای اصلی برنامه
+        let currentTab = 'dashboard';
+        let scheduleData = JSON.parse(localStorage.getItem('scheduleData')) || [];
+        let tasksData = JSON.parse(localStorage.getItem('tasksData')) || [];
+        let notesData = JSON.parse(localStorage.getItem('notesData')) || [];
+        let examsData = JSON.parse(localStorage.getItem('examsData')) || [];
+        let gradesData = JSON.parse(localStorage.getItem('gradesData')) || [];
+        let progressData = JSON.parse(localStorage.getItem('progressData')) || [];
+        
+        // تنظیمات پومودورو
+        let pomodoroSettings = JSON.parse(localStorage.getItem('pomodoroSettings')) || {
+            pomodoro: 25,
+            shortBreak: 5,
+            longBreak: 15
+        };
+        
+        // آمار پومودورو
+        let pomodoroStats = JSON.parse(localStorage.getItem('pomodoroStats')) || {
+            completed: 0,
+            studyTime: 0,
+            breakTime: 0,
+            lastReset: new Date().toDateString()
+        };
+        
+        // متغیرهای تایمر
+        let timer;
+        let timerRunning = false;
+        let timerMode = 'pomodoro';
+        let timerSeconds = pomodoroSettings.pomodoro * 60;
+        let initialSeconds = timerSeconds;
+
+        // تابع اولیه
+        document.addEventListener('DOMContentLoaded', function() {
+            // بررسی تاریخ برای ریست آمار روزانه پومودورو
+            if (pomodoroStats.lastReset !== new Date().toDateString()) {
+                pomodoroStats = {
+                    completed: 0,
+                    studyTime: 0,
+                    breakTime: 0,
+                    lastReset: new Date().toDateString()
+                };
+                localStorage.setItem('pomodoroStats', JSON.stringify(pomodoroStats));
+            }
+
+            // تنظیم تب‌ها
+            setupTabs();
+            
+            // بارگذاری داده‌های از پیش ذخیره شده
+            loadScheduleTable();
+            loadTasks();
+            loadNotes();
+            loadExams();
+            loadGrades();
+            loadProgress();
+            updateDashboard();
+            setupPomodoro();
+            
+            // تنظیم رویدادها
+            setupEventListeners();
+        });
+
+        // تنظیم تب‌ها
+        function setupTabs() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // فعال‌سازی تب پیش‌فرض
+            document.querySelector(`[data-tab="${currentTab}"]`).classList.add('border-blue-600');
+            document.getElementById(currentTab).classList.add('active');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.getAttribute('data-tab');
+                    
+                    // حذف کلاس فعال از همه تب‌ها
+                    tabBtns.forEach(b => b.classList.remove('border-blue-600'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // اضافه کردن کلاس فعال به تب انتخاب شده
+                    btn.classList.add('border-blue-600');
+                    document.getElementById(tabName).classList.add('active');
+                    
+                    // ذخیره تب فعلی
+                    currentTab = tabName;
+                });
+            });
+        }
+
+        // تنظیم رویدادها
+        function setupEventListeners() {
+            // رویداد افزودن درس به جدول برنامه هفتگی
+            document.getElementById('add-subject').addEventListener('click', addSubjectToSchedule);
+            
+            // رویداد افزودن تکلیف
+            document.getElementById('add-task').addEventListener('click', addTask);
+            
+            // رویدادهای فیلتر تکالیف
+            document.getElementById('filter-all').addEventListener('click', () => filterTasks('all'));
+            document.getElementById('filter-pending').addEventListener('click', () => filterTasks('pending'));
+            document.getElementById('filter-progress').addEventListener('click', () => filterTasks('progress'));
+            document.getElementById('filter-completed').addEventListener('click', () => filterTasks('completed'));
+            
+            // رویداد افزودن یادداشت
+            document.getElementById('add-note').addEventListener('click', addNote);
+            
+            // رویداد افزودن امتحان
+            document.getElementById('add-exam').addEventListener('click', addExam);
+            
+            // رویداد افزودن نمره
+            document.getElementById('add-grade').addEventListener('click', addGrade);
+            
+            // رویداد افزودن پیشرفت
+            document.getElementById('add-progress').addEventListener('click', addProgress);
+            
+            // رویداد تغییر درصد پیشرفت
+            document.getElementById('progress-percentage').addEventListener('input', function() {
+                document.getElementById('progress-value').textContent = this.value + '%';
+            });
+            
+            // رویدادهای تایمر پومودورو
+            document.getElementById('pomodoro-btn').addEventListener('click', () => switchTimerMode('pomodoro'));
+            document.getElementById('short-break-btn').addEventListener('click', () => switchTimerMode('shortBreak'));
+            document.getElementById('long-break-btn').addEventListener('click', () => switchTimerMode('longBreak'));
+            document.getElementById('start-timer').addEventListener('click', startTimer);
+            document.getElementById('pause-timer').addEventListener('click', pauseTimer);
+            document.getElementById('reset-timer').addEventListener('click', resetTimer);
+            document.getElementById('save-settings').addEventListener('click', saveTimerSettings);
+        }
+
+        // برنامه هفتگی
+        function addSubjectToSchedule() {
+            const name = document.getElementById('subject-name').value.trim();
+            const color = document.getElementById('subject-color').value;
+            const professor = document.getElementById('subject-professor').value.trim();
+            const day = parseInt(document.getElementById('subject-day').value);
+            const startTime = document.getElementById('subject-start-time').value;
+            const endTime = document.getElementById('subject-end-time').value;
+            
+            if (!name || !startTime || !endTime) {
+                alert('لطفا نام درس، زمان شروع و پایان را وارد کنید.');
+                return;
+            }
+            
+            const subject = {
+                id: Date.now(),
+                name,
+                color,
+                professor,
+                day,
+                startTime,
+                endTime
+            };
+            
+            scheduleData.push(subject);
+            localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+            
+            loadScheduleTable();
+            updateDashboard();
+            
+            // پاک کردن فیلدها
+            document.getElementById('subject-name').value = '';
+            document.getElementById('subject-professor').value = '';
+            document.getElementById('subject-start-time').value = '';
+            document.getElementById('subject-end-time').value = '';
+        }
+        
+        function loadScheduleTable() {
+            const scheduleTable = document.getElementById('schedule-table');
+            scheduleTable.innerHTML = '';
+            
+            // ساعت‌های روز
+            const hours = [];
+            for (let i = 8; i <= 20; i++) {
+                hours.push(`${i}:00`);
+            }
+            
+            // ساخت ردیف‌های جدول
+            hours.forEach(hour => {
+                const row = document.createElement('tr');
+                
+                // ستون ساعت
+                const timeCell = document.createElement('td');
+                timeCell.className = 'border p-2 bg-gray-50 font-medium';
+                timeCell.textContent = hour;
+                row.appendChild(timeCell);
+                
+                // ستون‌های روزهای هفته
+                for (let day = 0; day < 7; day++) {
+                    const cell = document.createElement('td');
+                    cell.className = 'border p-2';
+                    cell.dataset.day = day;
+                    cell.dataset.hour = hour;
+                    
+                    // بررسی آیا درسی برای این زمان و روز وجود دارد
+                    const hourNum = parseInt(hour.split(':')[0]);
+                    const subjects = scheduleData.filter(subject => {
+                        const subjectStartHour = parseInt(subject.startTime.split(':')[0]);
+                        const subjectEndHour = parseInt(subject.endTime.split(':')[0]);
+                        return subject.day === day && subjectStartHour <= hourNum && subjectEndHour > hourNum;
+                    });
+                    
+                    if (subjects.length > 0) {
+                        const subject = subjects[0];
+                        cell.classList.add(subject.color);
+                        
+                        // اطلاعات درس
+                        const content = document.createElement('div');
+                        content.innerHTML = `
+                            <div class="font-medium">${subject.name}</div>
+                            ${subject.professor ? `<div class="text-sm">${subject.professor}</div>` : ''}
+                            <div class="text-xs">${subject.startTime} - ${subject.endTime}</div>
+                        `;
+                        cell.appendChild(content);
+                        
+                        // دکمه حذف
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'text-red-600 hover:text-red-800 text-xs no-print';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        deleteBtn.onclick = function() {
+                            if (confirm('آیا مطمئن هستید که می‌خواهید این درس را حذف کنید؟')) {
+                                scheduleData = scheduleData.filter(s => s.id !== subject.id);
+                                localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+                                loadScheduleTable();
+                                updateDashboard();
+                            }
+                        };
+                        cell.appendChild(deleteBtn);
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                scheduleTable.appendChild(row);
+            });
+        }
+
+        // تکالیف و کارها
+        function addTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const subject = document.getElementById('task-subject').value.trim();
+            const dueDate = document.getElementById('task-due-date').value;
+            const priority = document.getElementById('task-priority').value;
+            const description = document.getElementById('task-description').value.trim();
+            
+            if (!title || !dueDate) {
+                alert('لطفا عنوان و مهلت انجام تکلیف را وارد کنید.');
+                return;
+            }
+            
+            const task = {
+                id: Date.now(),
+                title,
+                subject,
+                dueDate,
+                priority,
+                description,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            
+            tasksData.push(task);
+            localStorage.setItem('tasksData', JSON.stringify(tasksData));
+            
+            loadTasks();
+            updateDashboard();
+            
+            // پاک کردن فیلدها
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-subject').value = '';
+            document.getElementById('task-due-date').value = '';
+            document.getElementById('task-description').value = '';
+        }
+        
+        function filterTasks(filter) {
+            // تغییر استایل دکمه‌های فیلتر
+            document.getElementById('filter-all').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('filter-all').classList.add('bg-gray-200');
+            document.getElementById('filter-pending').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('filter-pending').classList.add('bg-gray-200');
+            document.getElementById('filter-progress').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('filter-progress').classList.add('bg-gray-200');
+            document.getElementById('filter-completed').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('filter-completed').classList.add('bg-gray-200');
+            
+            document.getElementById(`filter-${filter === 'all' ? 'all' : filter}`).classList.remove('bg-gray-200');
+            document.getElementById(`filter-${filter === 'all' ? 'all' : filter}`).classList.add('bg-blue-600', 'text-white');
+            
+            loadTasks(filter);
+        }
+        
+        function loadTasks(filter = 'all') {
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+            
+            let filteredTasks = tasksData;
+            if (filter !== 'all') {
+                filteredTasks = tasksData.filter(task => task.status === filter);
+            }
+            
+            // مرتب‌سازی تکالیف بر اساس مهلت انجام
+            filteredTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            
+            if (filteredTasks.length === 0) {
+                taskList.innerHTML = '<p class="text-gray-500 text-center">تکلیفی برای نمایش وجود ندارد.</p>';
+                return;
+            }
+            
+            filteredTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.classList.add('p-4', 'border', 'rounded-md', 'shadow-sm');
+                
+                // افزودن رنگ وضعیت
+                if (task.status === 'pending') taskElement.classList.add('task-pending');
+                else if (task.status === 'progress') taskElement.classList.add('task-in-progress');
+                else if (task.status === 'completed') taskElement.classList.add('task-completed');
+                
+                // محاسبه روزهای باقی‌مانده
+                const dueDate = new Date(task.dueDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                
+                let daysLeftText = '';
+                if (daysLeft < 0) {
+                    daysLeftText = `<span class="text-red-600">${Math.abs(daysLeft)} روز گذشته</span>`;
+                } else if (daysLeft === 0) {
+                    daysLeftText = '<span class="text-orange-600">امروز</span>';
+                } else {
+                    daysLeftText = `<span class="text-green-600">${daysLeft} روز مانده</span>`;
+                }
+                
+                taskElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-medium text-lg">${task.title}</h3>
+                            ${task.subject ? `<p class="text-gray-600 text-sm">درس: ${task.subject}</p>` : ''}
+                            <p class="text-gray-600 text-sm">مهلت: ${new Date(task.dueDate).toLocaleDateString('fa-IR')} (${daysLeftText})</p>
+                            ${task.description ? `<p class="mt-2">${task.description}</p>` : ''}
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-xs font-medium px-2 py-1 rounded-full ${getPriorityClass(task.priority)}">${getPriorityText(task.priority)}</span>
+                            <div class="mt-2 no-print">
+                                <button class="change-status-btn text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded mr-1" data-task-id="${task.id}" data-status="pending">در انتظار</button>
+                                <button class="change-status-btn text-xs bg-blue-200 hover:bg-blue-300 px-2 py-1 rounded mr-1" data-task-id="${task.id}" data-status="progress">در حال انجام</button>
+                                <button class="change-status-btn text-xs bg-green-200 hover:bg-green-300 px-2 py-1 rounded" data-task-id="${task.id}" data-status="completed">تکمیل شده</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-end no-print">
+                        <button class="delete-task-btn text-red-600 hover:text-red-800 text-xs" data-task-id="${task.id}">
+                            <i class="fas fa-trash ml-1"></i> حذف
+                        </button>
+                    </div>
+                `;
+                
+                taskList.appendChild(taskElement);
+            });
+            
+            // اضافه کردن رویدادها به دکمه‌ها
+            document.querySelectorAll('.change-status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const taskId = parseInt(this.dataset.taskId);
+                    const newStatus = this.dataset.status;
+                    changeTaskStatus(taskId, newStatus);
+                });
+            });
+            
+            document.querySelectorAll('.delete-task-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const taskId = parseInt(this.dataset.taskId);
+                    if (confirm('آیا مطمئن هستید که می‌خواهید این تکلیف را حذف کنید؟')) {
+                        deleteTask(taskId);
+                    }
+                });
+            });
+        }
+        
+        function changeTaskStatus(taskId, newStatus) {
+            const taskIndex = tasksData.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                tasksData[taskIndex].status = newStatus;
+                localStorage.setItem('tasksData', JSON.stringify(tasksData));
+                loadTasks('all');
+                updateDashboard();
+            }
+        }
+        
+        function deleteTask(taskId) {
+            tasksData = tasksData.filter(task => task.id !== taskId);
+            localStorage.setItem('tasksData', JSON.stringify(tasksData));
+            loadTasks('all');
+            updateDashboard();
+        }
+        
+        function getPriorityClass(priority) {
+            switch (priority) {
+                case 'high': return 'bg-red-200 text-red-800';
+                case 'medium': return 'bg-yellow-200 text-yellow-800';
+                case 'low': return 'bg-green-200 text-green-800';
+                default: return 'bg-gray-200 text-gray-800';
+            }
+        }
+        
+        function getPriorityText(priority) {
+            switch (priority) {
+                case 'high': return 'اولویت بالا';
+                case 'medium': return 'اولویت متوسط';
+                case 'low': return 'اولویت پایین';
+                default: return 'نامشخص';
+            }
+        }
+
+        // یادداشت‌ها
+        function addNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const subject = document.getElementById('note-subject').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            
+            if (!title || !content) {
+                alert('لطفا عنوان و متن یادداشت را وارد کنید.');
+                return;
+            }
+            
+            const note = {
+                id: Date.now(),
+                title,
+                subject,
+                content,
+                createdAt: new Date().toISOString()
+            };
+            
+            notesData.push(note);
+            localStorage.setItem('notesData', JSON.stringify(notesData));
+            
+            loadNotes();
+            
+            // پاک کردن فیلدها
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-subject').value = '';
+            document.getElementById('note-content').value = '';
+        }
+        
+        function loadNotes() {
+            const notesContainer = document.getElementById('notes-container');
+            notesContainer.innerHTML = '';
+            
+            if (notesData.length === 0) {
+                notesContainer.innerHTML = '<p class="text-gray-500 text-center col-span-3">هنوز یادداشتی ثبت نکرده‌اید.</p>';
+                return;
+            }
+            
+            notesData.forEach(note => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'bg-yellow-50 p-4 border-l-4 border-yellow-400 rounded-md shadow-sm';
+                
+                noteElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-semibold text-lg">${note.title}</h3>
+                        <button class="delete-note-btn text-red-600 hover:text-red-800 text-xs no-print" data-note-id="${note.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    ${note.subject ? `<p class="text-gray-600 text-sm">موضوع: ${note.subject}</p>` : ''}
+                    <p class="text-gray-600 text-xs">${new Date(note.createdAt).toLocaleDateString('fa-IR')}</p>
+                    <div class="mt-2 whitespace-pre-wrap">${note.content}</div>
+                `;
+                
+                notesContainer.appendChild(noteElement);
+            });
+            
+            // اضافه کردن رویداد به دکمه‌های حذف
+            document.querySelectorAll('.delete-note-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const noteId = parseInt(this.dataset.noteId);
+                    if (confirm('آیا مطمئن هستید که می‌خواهید این یادداشت را حذف کنید؟')) {
+                        deleteNote(noteId);
+                    }
+                });
+            });
+        }
+        
+        function deleteNote(noteId) {
+            notesData = notesData.filter(note => note.id !== noteId);
+            localStorage.setItem('notesData', JSON.stringify(notesData));
+            loadNotes();
+        }
+
+        // تقویم امتحانات
+        function addExam() {
+            const subject = document.getElementById('exam-subject').value.trim();
+            const date = document.getElementById('exam-date').value;
+            const time = document.getElementById('exam-time').value;
+            const location = document.getElementById('exam-location').value.trim();
+            const notes = document.getElementById('exam-notes').value.trim();
+            
+            if (!subject || !date) {
+                alert('لطفا نام درس و تاریخ امتحان را وارد کنید.');
+                return;
+            }
+            
+            const exam = {
+                id: Date.now(),
+                subject,
+                date,
+                time,
+                location,
+                notes
+            };
+            
+            examsData.push(exam);
+            localStorage.setItem('examsData', JSON.stringify(examsData));
+            
+            loadExams();
+            updateDashboard();
+            
+            // پاک کردن فیلدها
+            document.getElementById('exam-subject').value = '';
+            document.getElementById('exam-date').value = '';
+            document.getElementById('exam-time').value = '';
+            document.getElementById('exam-location').value = '';
+            document.getElementById('exam-notes').value = '';
+        }
+        
+        function loadExams() {
+            const examList = document.getElementById('exam-list');
+            examList.innerHTML = '';
+            
+            if (examsData.length === 0) {
+                examList.innerHTML = '<tr><td colspan="6" class="border p-3 text-center text-gray-500">هنوز امتحانی ثبت نشده است.</td></tr>';
+                return;
+            }
+            
+            // مرتب‌سازی امتحان‌ها بر اساس تاریخ
+            examsData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            examsData.forEach(exam => {
+                const row = document.createElement('tr');
+                
+                // محاسبه روزهای باقی‌مانده
+                const examDate = new Date(exam.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysLeft = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+                
+                let daysLeftText = '';
+                if (daysLeft < 0) {
+                    daysLeftText = `<span class="text-gray-600">${Math.abs(daysLeft)} روز گذشته</span>`;
+                } else if (daysLeft === 0) {
+                    daysLeftText = '<span class="text-red-600 font-bold">امروز</span>';
+                } else if (daysLeft <= 7) {
+                    daysLeftText = `<span class="text-orange-600 font-bold">${daysLeft} روز مانده</span>`;
+                } else {
+                    daysLeftText = `<span class="text-green-600">${daysLeft} روز مانده</span>`;
+                }
+                
+                row.innerHTML = `
+                    <td class="border p-3">${exam.subject}</td>
+                    <td class="border p-3">${new Date(exam.date).toLocaleDateString('fa-IR')}</td>
+                    <td class="border p-3">${exam.time || '—'}</td>
+                    <td class="border p-3">${exam.location || '—'}</td>
+                    <td class="border p-3">${daysLeftText}</td>
+                    <td class="border p-3 no-print">
+                        <button class="delete-exam-btn text-red-600 hover:text-red-800" data-exam-id="${exam.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                examList.appendChild(row);
+            });
+            
+            // اضافه کردن رویداد به دکمه‌های حذف
+            document.querySelectorAll('.delete-exam-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const examId = parseInt(this.dataset.examId);
+                    if (confirm('آیا مطمئن هستید که می‌خواهید این امتحان را حذف کنید؟')) {
+                        deleteExam(examId);
+                    }
+                });
+            });
+        }
+        
+        function deleteExam(examId) {
+            examsData = examsData.filter(exam => exam.id !== examId);
+            localStorage.setItem('examsData', JSON.stringify(examsData));
+            loadExams();
+            updateDashboard();
+        }
+
+        // محاسبه معدل
+        function addGrade() {
+            const subject = document.getElementById('grade-subject').value.trim();
+            const unit = parseInt(document.getElementById('grade-unit').value);
+            const score = parseFloat(document.getElementById('grade-score').value);
+            
+            if (!subject || isNaN(unit) || isNaN(score)) {
+                alert('لطفا تمام فیلدها را به درستی پر کنید.');
+                return;
+            }
+            
+            if (score < 0 || score > 20) {
+                alert('نمره باید بین 0 تا 20 باشد.');
+                return;
+            }
+            
+            const grade = {
+                id: Date.now(),
+                subject,
+                unit,
+                score
+            };
+            
+            gradesData.push(grade);
+            localStorage.setItem('gradesData', JSON.stringify(gradesData));
+            
+            loadGrades();
+            
+            // پاک کردن فیلدها
+            document.getElementById('grade-subject').value = '';
+            document.getElementById('grade-unit').value = '3';
+            document.getElementById('grade-score').value = '';
+        }
+        
+        function loadGrades() {
+            const gradeList = document.getElementById('grade-list');
+            gradeList.innerHTML = '';
+            
+            if (gradesData.length === 0) {
+                gradeList.innerHTML = '<tr><td colspan="4" class="border p-3 text-center text-gray-500">هنوز درسی ثبت نشده است.</td></tr>';
+                document.getElementById('total-units').textContent = '0';
+                document.getElementById('average-grade').textContent = '0.00';
+                document.getElementById('final-gpa').textContent = '0.00';
+                return;
+            }
+            
+            let totalUnits = 0;
+            let weightedSum = 0;
+            
+            gradesData.forEach(grade => {
+                const row = document.createElement('tr');
+                
+                totalUnits += grade.unit;
+                weightedSum += (grade.score * grade.unit);
+                
+                row.innerHTML = `
+                    <td class="border p-3">${grade.subject}</td>
+                    <td class="border p-3 text-center">${grade.unit}</td>
+                    <td class="border p-3 text-center">${grade.score.toFixed(2)}</td>
+                    <td class="border p-3 text-center no-print">
+                        <button class="delete-grade-btn text-red-600 hover:text-red-800" data-grade-id="${grade.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                gradeList.appendChild(row);
+            });
+            
+            // محاسبه و نمایش معدل
+            const average = weightedSum / totalUnits;
+            document.getElementById('total-units').textContent = totalUnits;
+            document.getElementById('average-grade').textContent = average.toFixed(2);
+            document.getElementById('final-gpa').textContent = average.toFixed(2);
+            
+            // اضافه کردن رویداد به دکمه‌های حذف
+            document.querySelectorAll('.delete-grade-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const gradeId = parseInt(this.dataset.gradeId);
+                    if (confirm('آیا مطمئن هستید که می‌خواهید این درس را حذف کنید؟')) {
+                        deleteGrade(gradeId);
+                    }
+                });
+            });
+        }
+        
+        function deleteGrade(gradeId) {
+            gradesData = gradesData.filter(grade => grade.id !== gradeId);
+            localStorage.setItem('gradesData', JSON.stringify(gradesData));
+            loadGrades();
+        }
+
+        // پیشرفت دروس
+        function addProgress() {
+            const subject = document.getElementById('progress-subject').value.trim();
+            const percentage = parseInt(document.getElementById('progress-percentage').value);
+            
+            if (!subject) {
+                alert('لطفا نام درس را وارد کنید.');
+                return;
+            }
+            
+            // بررسی آیا درس قبلاً اضافه شده است
+            const existingIndex = progressData.findIndex(p => p.subject.toLowerCase() === subject.toLowerCase());
+            
+            if (existingIndex !== -1) {
+                // به روز رسانی درس موجود
+                progressData[existingIndex].percentage = percentage;
+            } else {
+                // افزودن درس جدید
+                progressData.push({
+                    id: Date.now(),
+                    subject,
+                    percentage
+                });
+            }
+            
+            localStorage.setItem('progressData', JSON.stringify(progressData));
+            
+            loadProgress();
+            updateDashboard();
+            
+            // پاک کردن فیلدها
+            document.getElementById('progress-subject').value = '';
+            document.getElementById('progress-percentage').value = '50';
+            document.getElementById('progress-value').textContent = '50%';
+        }
+        
+        function loadProgress() {
+            const progressContainer = document.getElementById('progress-container');
+            progressContainer.innerHTML = '';
+            
+            if (progressData.length === 0) {
+                progressContainer.innerHTML = '<p class="text-gray-500 text-center">هنوز پیشرفتی ثبت نشده است.</p>';
+                document.getElementById('total-progress-value').textContent = '0%';
+                document.getElementById('total-progress-bar').style.width = '0%';
+                return;
+            }
+            
+            let totalPercentage = 0;
+            
+            progressData.forEach(progress => {
+                const progressElement = document.createElement('div');
+                progressElement.className = 'mb-6';
+                
+                progressElement.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="font-medium">${progress.subject}</span>
+                            <span class="ml-2">(${progress.percentage}%)</span>
+                        </div>
+                        <button class="delete-progress-btn text-red-600 hover:text-red-800 text-xs no-print" data-progress-id="${progress.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div class="bg-blue-600 h-4 rounded-full" style="width: ${progress.percentage}%"></div>
+                    </div>
+                `;
+                
+                progressContainer.appendChild(progressElement);
+                totalPercentage += progress.percentage;
+            });
+            
+            // محاسبه میانگین پیشرفت کلی
+            const averageProgress = Math.round(totalPercentage / progressData.length);
+            document.getElementById('total-progress-value').textContent = `${averageProgress}%`;
+            document.getElementById('total-progress-bar').style.width = `${averageProgress}%`;
+            
+            // اضافه کردن رویداد به دکمه‌های حذف
+            document.querySelectorAll('.delete-progress-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const progressId = parseInt(this.dataset.progressId);
+                    if (confirm('آیا مطمئن هستید که می‌خواهید این پیشرفت را حذف کنید؟')) {
+                        deleteProgress(progressId);
+                    }
+                });
+            });
+        }
+        
+        function deleteProgress(progressId) {
+            progressData = progressData.filter(progress => progress.id !== progressId);
+            localStorage.setItem('progressData', JSON.stringify(progressData));
+            loadProgress();
+            updateDashboard();
+        }
+
+        // پومودورو
+        function setupPomodoro() {
+            // نمایش تنظیمات از پیش ذخیره شده
+            document.getElementById('pomodoro-time').value = pomodoroSettings.pomodoro;
+            document.getElementById('short-break-time').value = pomodoroSettings.shortBreak;
+            document.getElementById('long-break-time').value = pomodoroSettings.longBreak;
+            
+            // نمایش آمار
+            updatePomodoroStats();
+            
+            // تنظیم تایمر
+            resetTimer();
+        }
+        
+        function updatePomodoroStats() {
+            document.getElementById('completed-pomodoros').textContent = pomodoroStats.completed;
+            document.getElementById('study-time').textContent = pomodoroStats.studyTime;
+            document.getElementById('break-time').textContent = pomodoroStats.breakTime;
+        }
+        
+        function switchTimerMode(mode) {
+            timerMode = mode;
+            
+            document.getElementById('pomodoro-btn').classList.remove('bg-green-700');
+            document.getElementById('short-break-btn').classList.remove('bg-blue-700');
+            document.getElementById('long-break-btn').classList.remove('bg-purple-700');
+            
+            if (mode === 'pomodoro') {
+                timerSeconds = pomodoroSettings.pomodoro * 60;
+                document.getElementById('pomodoro-btn').classList.add('bg-green-700');
+                document.querySelector('.timer-circle-progress').style.stroke = '#4CAF50';
+            } else if (mode === 'shortBreak') {
+                timerSeconds = pomodoroSettings.shortBreak * 60;
+                document.getElementById('short-break-btn').classList.add('bg-blue-700');
+                document.querySelector('.timer-circle-progress').style.stroke = '#2196F3';
+            } else if (mode === 'longBreak') {
+                timerSeconds = pomodoroSettings.longBreak * 60;
+                document.getElementById('long-break-btn').classList.add('bg-purple-700');
+                document.querySelector('.timer-circle-progress').style.stroke = '#9C27B0';
+            }
+            
+            initialSeconds = timerSeconds;
+            updateTimerDisplay();
+            
+            if (timerRunning) {
+                pauseTimer();
+                startTimer();
+            }
+        }
+        
+        function startTimer() {
+            if (timerRunning) return;
+            
+            document.getElementById('start-timer').disabled = true;
+            document.getElementById('pause-timer').disabled = false;
+            
+            timerRunning = true;
+            
+            timer = setInterval(() => {
+                timerSeconds--;
+                updateTimerDisplay();
+                
+                if (timerSeconds <= 0) {
+                    clearInterval(timer);
+                    timerRunning = false;
+                    
+                    // افزودن آمار
+                    if (timerMode === 'pomodoro') {
+                        pomodoroStats.completed++;
+                        pomodoroStats.studyTime += pomodoroSettings.pomodoro;
+                    } else {
+                        pomodoroStats.breakTime += (timerMode === 'shortBreak' ? pomodoroSettings.shortBreak : pomodoroSettings.longBreak);
+                    }
+                    localStorage.setItem('pomodoroStats', JSON.stringify(pomodoroStats));
+                    updatePomodoroStats();
+                    
+                    // پخش صدا
+                    const audio = new Audio('https://cdn.jsdelivr.net/gh/freeCodeCamp/cdn@master/build/testable-projects-fcc/audio/BeepSound.wav');
+                    audio.play();
+                    
+                    // بازنشانی دکمه‌ها
+                    document.getElementById('start-timer').disabled = false;
+                    document.getElementById('pause-timer').disabled = true;
+                    
+                    // نمایش نوتیفیکیشن
+                    if (Notification.permission === 'granted') {
+                        const title = timerMode === 'pomodoro' ? 'زمان استراحت!' : 'زمان مطالعه!';
+                        const body = timerMode === 'pomodoro' ? 'زمان مطالعه به پایان رسید. کمی استراحت کنید.' : 'زمان استراحت به پایان رسید. برگردیم به مطالعه!';
+                        new Notification(title, { body });
+                    }
+                    
+                    // تغییر حالت تایمر
+                    if (timerMode === 'pomodoro') {
+                        switchTimerMode('shortBreak');
+                    } else {
+                        switchTimerMode('pomodoro');
+                    }
+                }
+            }, 1000);
+        }
+        
+        function pauseTimer() {
+            clearInterval(timer);
+            timerRunning = false;
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
+        }
+        
+        function resetTimer() {
+            clearInterval(timer);
+            timerRunning = false;
+            
+            // بازنشانی زمان
+            if (timerMode === 'pomodoro') {
+                timerSeconds = pomodoroSettings.pomodoro * 60;
+            } else if (timerMode === 'shortBreak') {
+                timerSeconds = pomodoroSettings.shortBreak * 60;
+            } else if (timerMode === 'longBreak') {
+                timerSeconds = pomodoroSettings.longBreak * 60;
+            }
+            initialSeconds = timerSeconds;
+            
+            updateTimerDisplay();
+            
+            // بازنشانی دکمه‌ها
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            document.querySelector('.timer-text').textContent = `${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+            
+            // به روزرسانی حلقه پیشرفت
+            const progress = (initialSeconds - timerSeconds) / initialSeconds;
+            const dashoffset = 565.48 * (1 - progress);
+            document.querySelector('.timer-circle-progress').style.strokeDashoffset = dashoffset;
+            document.querySelector('.timer-circle-progress').style.strokeDasharray = '565.48';
+        }
+        
+        function saveTimerSettings() {
+            const pomodoro = parseInt(document.getElementById('pomodoro-time').value);
+            const shortBreak = parseInt(document.getElementById('short-break-time').value);
+            const longBreak = parseInt(document.getElementById('long-break-time').value);
+            
+            if (isNaN(pomodoro) || isNaN(shortBreak) || isNaN(longBreak)) {
+                alert('لطفا مقادیر معتبر وارد کنید.');
+                return;
+            }
+            
+            pomodoroSettings = {
+                pomodoro,
+                shortBreak,
+                longBreak
+            };
+            
+            localStorage.setItem('pomodoroSettings', JSON.stringify(pomodoroSettings));
+            
+            // بازنشانی تایمر با تنظیمات جدید
+            switchTimerMode(timerMode);
+            
+            alert('تنظیمات با موفقیت ذخیره شد.');
+        }
+
+        // به روزرسانی داشبورد
+        function updateDashboard() {
+            // محاسبه کلاس‌های امروز
+            const today = new Date().getDay(); // 0 یکشنبه، 1 دوشنبه، ...
+            const persianToday = (today + 1) % 7; // تبدیل به 0 شنبه، 1 یکشنبه، ...
+            const todayClasses = scheduleData.filter(subject => subject.day === persianToday).length;
+            document.getElementById('today-classes').textContent = todayClasses;
+            
+            // تکالیف باقی‌مانده
+            const pendingTasks = tasksData.filter(task => task.status !== 'completed').length;
+            document.getElementById('pending-tasks').textContent = pendingTasks;
+            
+            // امتحان‌های پیش‌رو
+            const upcomingExams = examsData.filter(exam => new Date(exam.date) >= new Date()).length;
+            document.getElementById('upcoming-exams').textContent = upcomingExams;
+            
+            // پیشرفت ترم (از پیشرفت دروس)
+            if (progressData.length > 0) {
+                const totalProgress = progressData.reduce((sum, progress) => sum + progress.percentage, 0);
+                const avgProgress = Math.round(totalProgress / progressData.length);
+                document.getElementById('term-progress').style.width = `${avgProgress}%`;
+            }
+            
+            // برنامه امروز
+            updateTodaySchedule();
+            
+            // تکالیف فوری
+            updateUrgentTasks();
+        }
+        
+        function updateTodaySchedule() {
+            const todaySchedule = document.getElementById('today-schedule');
+            todaySchedule.innerHTML = '';
+            
+            const today = new Date().getDay();
+            const persianToday = (today + 1) % 7;
+            const todayClasses = scheduleData.filter(subject => subject.day === persianToday);
+            
+            if (todayClasses.length === 0) {
+                todaySchedule.innerHTML = '<p class="text-gray-500 text-center">امروز کلاسی ندارید.</p>';
+                return;
+            }
+            
+            // مرتب‌سازی کلاس‌ها بر اساس زمان شروع
+            todayClasses.sort((a, b) => {
+                const timeA = a.startTime.split(':').map(Number);
+                const timeB = b.startTime.split(':').map(Number);
+                return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
+            });
+            
+            todayClasses.forEach(subject => {
+                const classItem = document.createElement('div');
+                classItem.className = `p-2 rounded mb-2 ${subject.color}`;
+                classItem.innerHTML = `
+                    <div class="font-medium">${subject.name}</div>
+                    <div class="text-sm">${subject.startTime} - ${subject.endTime}</div>
+                    ${subject.professor ? `<div class="text-xs text-gray-600">استاد: ${subject.professor}</div>` : ''}
+                `;
+                todaySchedule.appendChild(classItem);
+            });
+        }
+        
+        function updateUrgentTasks() {
+            const urgentTasks = document.getElementById('urgent-tasks');
+            urgentTasks.innerHTML = '';
+            
+            // پیدا کردن تکالیف با اولویت بالا که هنوز تکمیل نشده‌اند
+            const highPriorityTasks = tasksData.filter(task => task.priority === 'high' && task.status !== 'completed');
+            
+            // پیدا کردن تکالیفی که مهلت آنها نزدیک است (3 روز یا کمتر)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const upcomingDeadlines = tasksData.filter(task => {
+                if (task.status === 'completed') return false;
+                
+                const dueDate = new Date(task.dueDate);
+                const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                return daysLeft <= 3 && daysLeft >= 0;
+            });
+            
+            // ترکیب و حذف موارد تکراری
+            const urgentTasksList = [...new Set([...highPriorityTasks, ...upcomingDeadlines])];
+            
+            if (urgentTasksList.length === 0) {
+                urgentTasks.innerHTML = '<p class="text-gray-500 text-center">تکلیف فوری‌ای ندارید.</p>';
+                return;
+            }
+            
+            // مرتب‌سازی بر اساس مهلت انجام
+            urgentTasksList.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            
+            // نمایش حداکثر 5 تکلیف
+            urgentTasksList.slice(0, 5).forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                
+                let daysLeftText = '';
+                if (daysLeft === 0) {
+                    daysLeftText = '<span class="text-red-600 font-bold">امروز</span>';
+                } else {
+                    daysLeftText = `<span class="text-orange-600">${daysLeft} روز مانده</span>`;
+                }
+                
+                const taskItem = document.createElement('div');
+                taskItem.className = 'p-2 border-l-4 border-red-400 bg-red-50 rounded mb-2';
+                taskItem.innerHTML = `
+                    <div class="font-medium">${task.title}</div>
+                    <div class="text-sm flex justify-between">
+                        <span>${task.subject || ''}</span>
+                        <span>${daysLeftText}</span>
+                    </div>
+                `;
+                urgentTasks.appendChild(taskItem);
+            });
+        }
+
+        // درخواست دسترسی به نوتیفیکیشن‌ها
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            document.getElementById('start-timer').addEventListener('click', function() {
+                Notification.requestPermission();
+            });
+        }
+    </script>
+</body>
+</html>
